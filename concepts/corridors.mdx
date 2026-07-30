@@ -1,0 +1,77 @@
+---
+title: "Corridors & services"
+description: "How destinations, services and required fields work."
+---
+
+A **corridor** is a destination country you can send to. Each country exposes one or more
+**services** — a specific transfer route (e.g. cash payout vs. bank deposit) with its own limits,
+currency, and required customer fields.
+
+Fetch the catalogue from
+[`GET /api/v1/merchant-api/countries`](/api-reference/reference-data/list-available-corridors):
+
+```json
+{
+  "data": {
+    "countries": [
+      {
+        "name": "United Kingdom",
+        "code": "GBR",
+        "currency": "GBP",
+        "transferTypes": ["cash-to-cash", "cash-to-bank"],
+        "services": [
+          {
+            "id": "UPU_AGREEMENT_ID",       // ← use as serviceId when creating an order
+            "name": "Royal Mail Bank Transfer",
+            "transferType": "cash-to-bank",
+            "senderMethod": "cash",
+            "receiverMethod": "bank",
+            "currency": "GBP",
+            "limits": { "min": 1, "max": 2000, "minNgn": 170000, "maxNgn": 340000000 },
+            "requiredFields": {
+              "firstName": "R", "lastName": "R", "phone": "R",
+              "email": "O", "dateOfBirth": "O", "governmentId": "O"
+            },
+            "requiredBankDetails": {
+              "sender":   { "bank_name": false, "iban": false },
+              "receiver": { "bank_name": true,  "iban": true }
+            }
+          }
+        ]
+      }
+    ],
+    "meta": { "total": 12, "transferTypes": ["cash-to-cash", "cash-to-bank", "bank-to-cash", "bank-to-bank"] }
+  }
+}
+```
+
+## Picking a service
+
+1. Find the destination `country`.
+2. Choose a `service` whose `transferType` matches how your customer wants to send and how the
+   beneficiary wants to receive (e.g. `cash-to-bank`).
+3. Use that service's **`id`** as the `serviceId` on the money order.
+
+## Required fields
+
+Each service declares which sender/receiver fields it needs:
+
+- `requiredFields` — `"R"` means **required**, `"O"` means **optional**. Keys match the
+  [Party object](/api-reference/money-orders/create-a-money-order) field names.
+- `requiredBankDetails` — when `receiverMethod` is `bank`, collect the bank fields flagged `true`.
+
+<Warning>
+  Always read `requiredFields` for the chosen service before prompting your customer. Requirements
+  vary by corridor — a field optional for one destination may be required for another.
+</Warning>
+
+## Limits
+
+`limits.minNgn` / `limits.maxNgn` are the accepted send range **in NGN Kobo**. Validate `amount`
+against these before creating an order; exceeding `maxNgn` returns
+`400 Bad Request` ("Amount is above service maximum").
+
+<Tip>
+  Corridor data changes infrequently — cache the countries response for about an hour rather than
+  fetching it on every order.
+</Tip>

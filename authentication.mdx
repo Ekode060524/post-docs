@@ -1,0 +1,63 @@
+---
+title: "Authentication"
+description: "API keys, headers and key security."
+---
+
+## API keys
+
+The Public API authenticates every request with an **API key**. Send it in the `x-api-key` header:
+
+```bash
+curl "https://core-server-kwbm.onrender.com/api/v1/merchant-api/countries" \
+  -H "x-api-key: sk_Tz3hKm9nP2qR..."
+```
+
+A `Bearer` token is also accepted, if that fits your HTTP client better:
+
+```bash
+curl "https://core-server-kwbm.onrender.com/api/v1/merchant-api/countries" \
+  -H "Authorization: Bearer sk_Tz3hKm9nP2qR..."
+```
+
+Keys are created in the [Merchant Portal](https://merchant.postmoni.com) under **API Keys**. Your
+organization must be **active** before keys can be issued — see [Onboarding](/concepts/onboarding).
+
+## Key format
+
+Every key begins with `sk_` followed by 48 base64url characters (~51 characters total):
+
+```
+sk_Tz3hKm9nP2qR7sXwVy4zA8bCdEfGhIjKlMnOpQrStUvWx
+```
+
+## Key security
+
+<Warning>
+  Never expose API keys in client-side code, public repositories, or logs. If a key is compromised,
+  rotate it immediately from the Merchant Portal.
+</Warning>
+
+- The secret is shown **only once** at creation — store it in a secrets manager (AWS Secrets
+  Manager, HashiCorp Vault, etc.) right away.
+- Keys are stored as **bcrypt hashes** — Postmoni cannot recover a lost key.
+- Each key is scoped to your organization; a compromised key cannot reach another org's data.
+- Use separate keys per environment (sandbox / live).
+
+## Environments
+
+| Prefix / URL | Environment |
+| --- | --- |
+| `https://core-server-kwbm.onrender.com` | Sandbox — test keys, no real money |
+| `https://api.postmoni.com` | Live — real transactions (_coming soon_) |
+
+Sandbox and Live are completely separate servers with separate credentials. A sandbox key will not
+authenticate against the live URL, and vice-versa.
+
+## Authentication errors
+
+| Status | Meaning |
+| --- | --- |
+| `401 Unauthorized` | Missing key, or the key is invalid/revoked |
+| `403 Forbidden` | Your organization is suspended or not active |
+
+See [Error handling](/errors) for the full list.

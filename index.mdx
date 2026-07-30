@@ -1,0 +1,57 @@
+---
+title: "Postmoni Public API"
+description: "Integrate international money orders directly into your product — corridors, money orders and reference data over a simple REST API."
+---
+
+The **Postmoni Public API** lets you build cross-border remittance into your own product. Create
+money orders on behalf of your customers, query available corridors and exchange rates, and track
+payouts — all over REST/JSON, secured by scoped API keys.
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="bolt" href="/quickstart">
+    Make your first request in under a minute.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    API keys, headers and key security.
+  </Card>
+  <Card title="Corridors" icon="globe" href="/concepts/corridors">
+    How destinations, services and required fields work.
+  </Card>
+  <Card title="Full integration flow" icon="diagram-project" href="/guides/integration-flow">
+    The end-to-end path from corridor to payout.
+  </Card>
+</CardGroup>
+
+## Base URL
+
+| Environment | Base URL | Notes |
+| --- | --- | --- |
+| Sandbox | `https://core-server-kwbm.onrender.com` | Test integration — no real money moves |
+| Live | `https://api.postmoni.com` | Real transactions — _coming soon_ |
+
+All endpoints are versioned and prefixed, e.g. `GET /api/v1/merchant-api/countries`.
+
+<Note>
+  All requests must be made over **HTTPS** (TLS 1.2+). Sandbox and Live are fully separate servers
+  with separate credentials — a live key will not work against sandbox, and vice-versa.
+</Note>
+
+## Response envelope
+
+Every response is wrapped in a consistent envelope:
+
+```json
+{
+  "data": { /* response payload */ },
+  "message": "Success",
+  "statusCode": 200
+}
+```
+
+Errors follow a matching shape — see [Error handling](/errors).
+
+## Money is in Kobo
+
+All Naira amounts are expressed in **Kobo**, the minor unit (1 NGN = 100 Kobo). For example,
+`500000` means **₦5,000.00**. Destination-currency amounts under `fx` follow the same minor-unit
+convention.

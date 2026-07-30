@@ -1,0 +1,37 @@
+---
+title: "Sandbox testing"
+description: "Test your integration without moving real money."
+---
+
+The sandbox mirrors production behavior, but no real transactions are processed. Use it to build
+and verify your integration end to end before going live.
+
+## Base URL
+
+```
+https://core-server-kwbm.onrender.com/api/v1
+```
+
+Use the sandbox API key provided by the Postmoni team. Sandbox and Live are separate servers with
+separate credentials — see [Authentication](/authentication).
+
+## Test scenarios
+
+| Scenario | How to trigger |
+| --- | --- |
+| Successful money order | Use any valid corridor `serviceId` and an amount within limits |
+| Amount above maximum | Pass an `amount` greater than the service's `maxNgn` |
+| Invalid corridor | Pass a non-existent `serviceId` → `400 Invalid service ID` |
+| Invalid API key | Send any random string as the key → `401` |
+| Suspended organization | Ask Postmoni to toggle your sandbox org to `suspended` → `403` |
+
+<Check>
+  Before going live, exercise the edge cases: maximum amounts, missing required receiver fields, and
+  invalid corridor IDs. Confirm your code handles the [error envelope](/errors) for each.
+</Check>
+
+## Going live
+
+When your integration is verified in sandbox and your organization is `active`, generate a **live**
+key from the [Merchant Portal](https://merchant.postmoni.com) and switch your base URL to
+`https://api.postmoni.com`. No code changes are required beyond the key and base URL.

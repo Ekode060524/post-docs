@@ -1,0 +1,52 @@
+---
+title: "Full integration flow"
+description: "The end-to-end path from corridor to payout."
+---
+
+Here's the complete flow for a merchant building a remittance product on Postmoni.
+
+<Steps>
+  <Step title="Query available corridors">
+    Call [`GET /api/v1/merchant-api/countries`](/api-reference/reference-data/list-available-corridors) to
+    get active destinations and their services. Cache the service `id` values — you'll need them
+    when creating orders. See [Corridors & services](/concepts/corridors).
+  </Step>
+  <Step title="Collect sender & receiver details">
+    In your UI, collect legal names, contact info, and any corridor-required fields. Check the
+    service's `requiredFields` (`"R"` = required, `"O"` = optional) and, for bank payouts,
+    `requiredBankDetails`.
+  </Step>
+  <Step title="Create the money order">
+    Call [`POST /api/v1/merchant-api/money-orders`](/api-reference/money-orders/create-a-money-order)
+    with `serviceId`, `amount` (NGN Kobo), `sender`, and `receiver`. Store the returned `id` and
+    `secretCode`.
+  </Step>
+  <Step title="Collect payment from your customer">
+    Charge `fees.total` (amount + fees) from your customer through **your own** payment flow.
+    Postmoni does not collect payment from the sender directly.
+  </Step>
+  <Step title="Share the secret code">
+    Securely deliver the 6-digit `secretCode` to the receiver (in-app, SMS, or email). They present
+    it to collect the funds at a Postmoni partner location.
+  </Step>
+  <Step title="Poll for status updates">
+    Call [`GET /api/v1/merchant-api/money-orders/{uid}`](/api-reference/money-orders/fetch-a-single-money-order)
+    until the status reaches a terminal state — `completed` or `cancelled`. See the
+    [lifecycle](/concepts/money-order-lifecycle).
+  </Step>
+</Steps>
+
+## At a glance
+
+```
+GET  /countries                     → pick a service id
+POST /money-orders                  → returns id + secretCode
+     (charge your customer fees.total in your own flow)
+     (share secretCode with receiver)
+GET  /money-orders/{uid}  (poll)    → initiated → … → completed
+```
+
+<Tip>
+  Validate `amount` against the service's `limits.minNgn` / `limits.maxNgn` before creating the
+  order so your customer gets instant feedback instead of a `400` after submitting.
+</Tip>

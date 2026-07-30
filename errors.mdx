@@ -1,0 +1,44 @@
+---
+title: "Error handling"
+description: "Status codes and the error envelope."
+---
+
+Postmoni uses standard HTTP status codes. Every error response carries a human-readable `message`
+field alongside the status.
+
+## Error envelope
+
+```json
+{
+  "statusCode": 400,
+  "message": "Amount is above service maximum",
+  "error": "Bad Request"
+}
+```
+
+## Status codes
+
+| Status | Name | When it happens |
+| --- | --- | --- |
+| `200` | OK | Request succeeded |
+| `201` | Created | Resource created (e.g. a money order) |
+| `400` | Bad Request | Validation failure or invalid parameters |
+| `401` | Unauthorized | Missing or invalid API key |
+| `403` | Forbidden | Organization suspended or not active |
+| `404` | Not Found | Resource does not exist or isn't owned by your org |
+| `429` | Too Many Requests | Rate limit exceeded — slow down |
+| `500` | Server Error | Something went wrong on our end |
+
+## Common validation messages
+
+| Message | Cause |
+| --- | --- |
+| `Invalid service ID` | The `serviceId` doesn't match an active corridor service |
+| `Amount is above service maximum` | `amount` exceeds the corridor's `maxNgn` limit |
+| `Money order not found` | The `uid` doesn't exist, or belongs to another organization |
+
+<Tip>
+  Always validate `amount` against the service's `limits` (from
+  [`GET /countries`](/api-reference/reference-data/list-available-corridors)) before creating an order —
+  it saves a round-trip and gives your customer instant feedback.
+</Tip>

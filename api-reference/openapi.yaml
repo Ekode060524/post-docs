@@ -1,0 +1,353 @@
+openapi: 3.1.0
+info:
+  title: Postmoni — Public API
+  version: "1.0"
+  description: >
+    Public API for international money orders. Create money orders on behalf of your
+    customers, query available corridors, and track payout status. Authenticate with an
+    API key issued from the Merchant Portal. All amounts are in Nigerian Naira Kobo
+    (1 NGN = 100 Kobo).
+servers:
+  - url: https://api.postmoni.com
+    description: Live (production) — coming soon
+  - url: https://core-server-kwbm.onrender.com
+    description: Sandbox / staging
+security:
+  - ApiKeyAuth: []
+tags:
+  - name: Reference Data
+    description: Corridors and metadata needed to build a money order.
+  - name: Money Orders
+    description: Create and track international money orders.
+paths:
+  /api/v1/merchant-api/countries:
+    get:
+      tags: [Reference Data]
+      operationId: listCountries
+      summary: List available corridors
+      description: >
+        Returns the list of active destination countries with their available services.
+        Use a service's `id` as the `serviceId` when creating a money order. Corridor data
+        changes infrequently — caching the response for ~1 hour is recommended.
+      responses:
+        "200":
+          description: Available corridors, grouped by country.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/CountriesResponse"
+                  message: { type: string, example: Success }
+                  statusCode: { type: integer, example: 200 }
+
+  /api/v1/merchant-api/money-orders:
+    post:
+      tags: [Money Orders]
+      operationId: createMoneyOrder
+      summary: Create a money order
+      description: >
+        Initiates a new money order for a sender/receiver pair on a given corridor. The
+        response includes a 6-digit `secretCode` the receiver must present at collection —
+        it is returned **only** on create and single-fetch, never in the list endpoint.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMoneyOrder"
+      responses:
+        "201":
+          description: The created money order (includes `secretCode`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MoneyOrderDetail"
+                  message: { type: string, example: Success }
+                  statusCode: { type: integer, example: 201 }
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    get:
+      tags: [Money Orders]
+      operationId: listMoneyOrders
+      summary: List money orders
+      description: Returns money orders created under your organization's API key. The `secretCode` is never included in list responses.
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          description: "Page size. Default: 20."
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+      responses:
+        "200":
+          description: A page of money orders.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MoneyOrderList"
+                  message: { type: string, example: Success }
+                  statusCode: { type: integer, example: 200 }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/v1/merchant-api/money-orders/{uid}:
+    get:
+      tags: [Money Orders]
+      operationId: getMoneyOrder
+      summary: Fetch a single money order
+      description: >
+        Returns the full details of one money order, including `secretCode`. Only money
+        orders created by your organization are accessible.
+      parameters:
+        - name: uid
+          in: path
+          required: true
+          description: The money order `id` (uid) returned on create.
+          schema: { type: string }
+      responses:
+        "200":
+          description: The money order (includes `secretCode`).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: "#/components/schemas/MoneyOrderDetail"
+                  message: { type: string, example: Success }
+                  statusCode: { type: integer, example: 200 }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: "Your Postmoni API key, e.g. `sk_Tz3hKm9nP2qR...`. A `Authorization: Bearer sk_...` header is also accepted."
+  responses:
+    BadRequest:
+      description: Validation failure or invalid parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 400
+            message: Amount is above service maximum
+            error: Bad Request
+    Unauthorized:
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 401
+            message: Invalid or revoked API key
+            error: Unauthorized
+    NotFound:
+      description: Resource does not exist or is not owned by your organization.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            statusCode: 404
+            message: Money order not found
+            error: Not Found
+  schemas:
+    Party:
+      type: object
+      description: Sender or receiver details. Required fields vary by corridor — check the service's `requiredFields`.
+      required: [firstName, lastName]
+      properties:
+        firstName: { type: string, example: Emeka }
+        lastName: { type: string, example: Okafor }
+        email: { type: string, format: email, example: emeka@example.com }
+        phone: { type: string, example: "+2348012345678" }
+        dateOfBirth:
+          type: string
+          description: ISO 8601 date (YYYY-MM-DD).
+          pattern: '^\d{4}-\d{2}-\d{2}$'
+          example: "1990-05-14"
+        governmentId:
+          type: string
+          description: National ID or passport number.
+          example: A01234567
+        address:
+          type: object
+          properties:
+            street: { type: string, example: "12 Marina Road" }
+            city: { type: string, example: Lagos }
+            state: { type: string, example: Lagos }
+            postalCode: { type: string, example: "100001" }
+    CreateMoneyOrder:
+      type: object
+      required: [serviceId, amount, sender, receiver]
+      properties:
+        serviceId:
+          type: string
+          description: The corridor service `id` from `GET /api/v1/merchant-api/countries`.
+          example: UPU_AGREEMENT_ID
+        amount:
+          type: number
+          description: Amount in NGN Kobo (1 NGN = 100 Kobo). E.g. 500000 = ₦5,000.
+          example: 500000
+        description:
+          type: string
+          maxLength: 256
+          description: Optional free-text purpose/note.
+          example: Family support
+        sender:
+          $ref: "#/components/schemas/Party"
+        receiver:
+          $ref: "#/components/schemas/Party"
+    Fees:
+      type: object
+      properties:
+        handling: { type: number, example: 2500 }
+        variable: { type: number, example: 0 }
+        vat: { type: number, example: 187 }
+        total:
+          type: number
+          description: Amount + all fees, in NGN Kobo. Charge this to your customer.
+          example: 502687
+    Fx:
+      type: object
+      properties:
+        amount:
+          type: number
+          description: Payout amount in the destination currency's minor units.
+          example: 250
+        currency: { type: string, example: GBP }
+        rate: { type: number, example: 2000 }
+    MoneyOrder:
+      type: object
+      properties:
+        id: { type: string, example: MO-abc123 }
+        status:
+          $ref: "#/components/schemas/MoneyOrderStatus"
+        amount: { type: number, example: 500000 }
+        fees: { $ref: "#/components/schemas/Fees" }
+        fx: { $ref: "#/components/schemas/Fx" }
+        serviceId: { type: string, example: UPU_AGREEMENT_ID }
+        description: { type: string, nullable: true, example: Family support }
+        sender: { $ref: "#/components/schemas/Party" }
+        receiver: { $ref: "#/components/schemas/Party" }
+        createdAt: { type: string, format: date-time, nullable: true }
+        updatedAt: { type: string, format: date-time, nullable: true }
+    MoneyOrderDetail:
+      allOf:
+        - $ref: "#/components/schemas/MoneyOrder"
+        - type: object
+          properties:
+            secretCode:
+              type: string
+              nullable: true
+              description: 6-digit OTP the receiver presents to collect funds. Returned only on create and single-fetch.
+              example: "492841"
+    MoneyOrderList:
+      type: object
+      properties:
+        moneyOrders:
+          type: array
+          items:
+            $ref: "#/components/schemas/MoneyOrder"
+        total: { type: integer, example: 42 }
+        page: { type: integer, example: 1 }
+        pageSize: { type: integer, example: 20 }
+    MoneyOrderStatus:
+      type: string
+      description: Lifecycle state of the money order.
+      enum:
+        - initiated
+        - payment_pending
+        - paid
+        - transfer_pending
+        - completed
+        - cancelled
+      example: initiated
+    Service:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Pass as `serviceId` when creating an order.
+          example: UPU_AGREEMENT_ID
+        name: { type: string, example: Royal Mail Bank Transfer }
+        transferType: { type: string, example: cash-to-bank }
+        senderMethod: { type: string, example: cash }
+        receiverMethod: { type: string, example: bank }
+        currency:
+          type: string
+          description: Destination currency.
+          example: GBP
+        limits:
+          type: object
+          properties:
+            min: { type: number, example: 1 }
+            max: { type: number, example: 2000 }
+            minNgn: { type: number, description: Min in NGN Kobo., example: 170000 }
+            maxNgn: { type: number, description: Max in NGN Kobo., example: 340000000 }
+        requiredFields:
+          type: object
+          additionalProperties: { type: string, enum: ["R", "O"] }
+          description: '`R` = required, `O` = optional. Keys match Party field names.'
+          example: { firstName: R, lastName: R, phone: R, email: O }
+        requiredBankDetails:
+          type: object
+          properties:
+            sender:
+              type: object
+              additionalProperties: { type: boolean }
+            receiver:
+              type: object
+              additionalProperties: { type: boolean }
+    Country:
+      type: object
+      properties:
+        name: { type: string, example: United Kingdom }
+        code: { type: string, example: GBR }
+        currency: { type: string, example: GBP }
+        transferTypes:
+          type: array
+          items: { type: string }
+          example: [cash-to-cash, cash-to-bank]
+        services:
+          type: array
+          items:
+            $ref: "#/components/schemas/Service"
+    CountriesResponse:
+      type: object
+      properties:
+        countries:
+          type: array
+          items:
+            $ref: "#/components/schemas/Country"
+        meta:
+          type: object
+          properties:
+            total: { type: integer, example: 12 }
+            transferTypes:
+              type: array
+              items: { type: string }
+              example: [cash-to-cash, cash-to-bank, bank-to-cash, bank-to-bank]
+    Error:
+      type: object
+      properties:
+        statusCode: { type: integer, example: 400 }
+        message: { type: string, example: Amount is above service maximum }
+        error: { type: string, example: Bad Request }

@@ -1,0 +1,59 @@
+---
+title: "Money order lifecycle"
+description: "The states a money order moves through, and how to track them."
+---
+
+A money order represents an international remittance initiated on behalf of your customer. After
+creation it progresses through a series of statuses until the receiver collects the funds.
+
+## Statuses
+
+| Status | Description |
+| --- | --- |
+| `initiated` | Order created. Awaiting payment from the sender |
+| `payment_pending` | Payment is processing |
+| `paid` | Payment confirmed. Funds are being processed for payout |
+| `transfer_pending` | Transfer to the receiver is in progress |
+| `completed` | Payout complete — the receiver collected the funds |
+| `cancelled` | Order cancelled |
+
+The **terminal** states are `completed` and `cancelled`.
+
+## Tracking status
+
+Poll [`GET /api/v1/merchant-api/money-orders/{uid}`](/api-reference/money-orders/fetch-a-single-money-order)
+with the `id` you received on create:
+
+```bash
+curl "https://core-server-kwbm.onrender.com/api/v1/merchant-api/money-orders/MO-abc123" \
+  -H "x-api-key: sk_your_key"
+```
+
+<Tip>
+  Poll at a modest interval (e.g. every 30–60s) until you observe a terminal state. Stop polling
+  once the status is `completed` or `cancelled`.
+</Tip>
+
+## Fees and FX
+
+Every money order breaks down its costs so you know exactly what to charge your customer:
+
+- **`fees`** — `handling`, `variable`, `vat`, and `total` (all in NGN Kobo). Charge `fees.total`
+  (amount + fees) to your customer through your own payment flow.
+- **`fx`** — the payout `amount` in the destination currency's minor units, the `currency`, and the
+  applied `rate`.
+
+<Note>
+  Postmoni does not collect payment from the sender directly — you charge your customer, then
+  Postmoni handles the cross-border payout to the receiver.
+</Note>
+
+## The secret code
+
+On create (and single-fetch) the response includes a 6-digit **`secretCode`** — the OTP the
+receiver presents to collect the funds. It is never returned by the list endpoint.
+
+<Warning>
+  Relay the `secretCode` to the receiver over your own secure channel (in-app, SMS, email) and store
+  it safely. Anyone with the code and the order reference can collect the funds.
+</Warning>

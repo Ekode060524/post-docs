@@ -1,0 +1,75 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "Postmoni",
+  "description": "Public API for international money orders — corridors, money orders and reference data.",
+  "colors": {
+    "primary": "#4F8EFF",
+    "light": "#93C5FD",
+    "dark": "#1A2F5E"
+  },
+  "favicon": "/favicon.png",
+  "logo": {
+    "light": "/logo/light.png",
+    "dark": "/logo/dark.png"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Getting started",
+            "pages": ["index", "quickstart", "authentication", "errors"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/onboarding",
+              "concepts/corridors",
+              "concepts/money-order-lifecycle"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": ["guides/integration-flow", "guides/sandbox-testing"]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Reference Data",
+            "openapi": "api-reference/openapi.yaml",
+            "pages": ["GET /api/v1/merchant-api/countries"]
+          },
+          {
+            "group": "Money Orders",
+            "openapi": "api-reference/openapi.yaml",
+            "pages": [
+              "POST /api/v1/merchant-api/money-orders",
+              "GET /api/v1/merchant-api/money-orders",
+              "GET /api/v1/merchant-api/money-orders/{uid}"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      { "label": "Merchant Portal", "href": "https://merchant.postmoni.com" }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get an API key",
+      "href": "https://merchant.postmoni.com"
+    }
+  },
+  "footer": {
+    "socials": {
+      "website": "https://postmoni.com"
+    }
+  }
+}

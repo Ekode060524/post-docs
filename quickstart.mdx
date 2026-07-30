@@ -1,0 +1,114 @@
+---
+title: "Quickstart"
+description: "From zero to your first money order."
+---
+
+## 1. Get an API key
+
+Your organization must be onboarded and **active** before you can create keys — see
+[Merchant onboarding](/concepts/onboarding). Once active, go to the
+[Merchant Portal](https://merchant.postmoni.com) → **API Keys → Create key** and copy the secret.
+It's shown **only once**.
+
+<Note>Keys start with `sk_`. Store yours in a secrets manager — Postmoni cannot recover a lost key.</Note>
+
+## 2. List available corridors
+
+Every money order targets a **service** on a destination corridor. Fetch the catalogue first and
+grab a service `id`.
+
+<CodeGroup>
+
+```bash cURL
+curl "https://core-server-kwbm.onrender.com/api/v1/merchant-api/countries" \
+  -H "x-api-key: sk_your_key"
+```
+
+```js JavaScript
+const res = await fetch(
+  "https://core-server-kwbm.onrender.com/api/v1/merchant-api/countries",
+  { headers: { "x-api-key": "sk_your_key" } }
+);
+const { data } = await res.json();
+const service = data.countries[0].services[0];
+console.log(service.id); // use as serviceId below
+```
+
+</CodeGroup>
+
+## 3. Create a money order
+
+Amounts are in **NGN Kobo** (`500000` = ₦5,000). Check the service's `requiredFields` before
+collecting sender/receiver details.
+
+<CodeGroup>
+
+```bash cURL
+curl -X POST "https://core-server-kwbm.onrender.com/api/v1/merchant-api/money-orders" \
+  -H "x-api-key: sk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serviceId": "UPU_AGREEMENT_ID",
+    "amount": 500000,
+    "description": "Family support",
+    "sender":   { "firstName": "Emeka", "lastName": "Okafor", "phone": "+2348012345678" },
+    "receiver": { "firstName": "Sarah", "lastName": "Okafor", "email": "sarah@example.co.uk" }
+  }'
+```
+
+```js JavaScript
+const res = await fetch(
+  "https://core-server-kwbm.onrender.com/api/v1/merchant-api/money-orders",
+  {
+    method: "POST",
+    headers: { "x-api-key": "sk_your_key", "Content-Type": "application/json" },
+    body: JSON.stringify({
+      serviceId: "UPU_AGREEMENT_ID",
+      amount: 500000,
+      description: "Family support",
+      sender:   { firstName: "Emeka", lastName: "Okafor", phone: "+2348012345678" },
+      receiver: { firstName: "Sarah", lastName: "Okafor", email: "sarah@example.co.uk" },
+    }),
+  }
+);
+const { data } = await res.json();
+console.log(data.id, data.secretCode);
+```
+
+</CodeGroup>
+
+## 4. Response
+
+```json
+{
+  "data": {
+    "id": "MO-abc123",
+    "status": "initiated",
+    "amount": 500000,
+    "fees": { "handling": 2500, "variable": 0, "vat": 187, "total": 502687 },
+    "fx": { "amount": 250, "currency": "GBP", "rate": 2000 },
+    "serviceId": "UPU_AGREEMENT_ID",
+    "secretCode": "492841",
+    "createdAt": "2026-07-28T04:00:00Z"
+  },
+  "message": "Success",
+  "statusCode": 201
+}
+```
+
+<Warning>
+  The **`secretCode`** is a 6-digit OTP the receiver presents to collect the funds. It is returned
+  only on create and single-fetch — never in the list endpoint. Relay it to the receiver over your
+  own secure channel and store it safely.
+</Warning>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Full integration flow" icon="diagram-project" href="/guides/integration-flow">
+    Corridor → collect details → create → pay → payout.
+  </Card>
+  <Card title="Money order lifecycle" icon="arrows-rotate" href="/concepts/money-order-lifecycle">
+    Poll status from `initiated` to `completed`.
+  </Card>
+</CardGroup>

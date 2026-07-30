@@ -1,0 +1,46 @@
+---
+title: "Merchant onboarding"
+description: "How your organization gets approved to use the Public API."
+---
+
+Before you can use the Public API, your organization must be registered and approved by Postmoni.
+Onboarding happens through the **Merchant Portal** — not these API endpoints.
+
+<Steps>
+  <Step title="Register your organization">
+    Sign up at [merchant.postmoni.com](https://merchant.postmoni.com) with your business email and
+    create an account. You'll receive a verification email.
+  </Step>
+  <Step title="Complete KYC (3 stages)">
+    - **Stage 1 — Business info:** organization name, type, business email, phone, country.
+    - **Stage 2 — Bank details:** settlement bank account information.
+    - **Stage 3 — Compliance:** CAC certificate, TIN, company memorandum, director IDs, proof of
+      address, and CBN license (if applicable).
+  </Step>
+  <Step title="Submit for review">
+    Once all stages are complete, your application moves to `pending` and a Postmoni compliance
+    officer reviews the documents — typically 1–3 business days.
+  </Step>
+  <Step title="Approval or rejection">
+    You'll be emailed the decision. If **approved**, your status becomes `active` and you can
+    generate API keys. If **rejected**, a reason is provided and you may reapply.
+  </Step>
+  <Step title="Generate a key & integrate">
+    In the Merchant Portal, open **API Keys**, generate your first key, and start integrating —
+    begin with the [Quickstart](/quickstart).
+  </Step>
+</Steps>
+
+## Organization statuses
+
+| Status | Description |
+| --- | --- |
+| `pending` | Application submitted, awaiting compliance review |
+| `active` | Approved — API keys can be generated and used |
+| `rejected` | Application rejected; a reason is provided via email |
+| `suspended` | Suspended by Postmoni — API keys are deactivated |
+
+<Note>
+  While your organization is `suspended` or not `active`, API requests return
+  `403 Forbidden`. Contact Postmoni support to resolve.
+</Note>
